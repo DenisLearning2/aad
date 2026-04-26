@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 
+
 def main():
     current_dir = Path(__file__).resolve().parent
     parent_dir = current_dir.parent
