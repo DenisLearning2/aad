@@ -17,6 +17,11 @@ class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
+        if 'refresh' not in request.data:
+            return Response(
+                {"refresh": ["Обязательное поле."]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
 
         try:
@@ -45,6 +50,11 @@ class CustomTokenVerifyView(TokenVerifyView):
     serializer_class = CustomTokenVerifySerializer
 
     def post(self, request, *args, **kwargs):
+        if 'token' not in request.data:
+            return Response(
+                {"token": ["Обязательное поле."]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         serializer = self.get_serializer(data=request.data)
 
         try:
