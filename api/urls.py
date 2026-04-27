@@ -29,10 +29,10 @@ urlpatterns = [
     path('follow/<int:pk>/', FollowViewSet.as_view({
         'delete': 'destroy'
     }), name='follow-detail'),
-    path('jwt/create/', TokenObtainPairView.as_view(), 
+    path('jwt/create/', TokenObtainPairView.as_view(),
          name='token_obtain_pair'),
-    path('jwt/refresh/', CustomTokenRefreshView.as_view(), 
+    path('jwt/refresh/', CustomTokenRefreshView.as_view(),
          name='token_refresh'),
-    path('jwt/verify/', CustomTokenVerifyView.as_view(), 
+    path('jwt/verify/', CustomTokenVerifyView.as_view(),
          name='token_verify'),
 ]

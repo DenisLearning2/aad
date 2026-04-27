@@ -97,8 +97,8 @@ class PostViewSet(viewsets.ModelViewSet):
         if instance.author != request.user:
             return Response(
                 {"detail":
-                    "У вас недостаточно прав для выполнения данного действия."
-                },
+                    "У вас недостаточно прав для "
+                    "выполнения данного действия."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
