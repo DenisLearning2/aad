@@ -1,10 +1,10 @@
-from rest_framework import viewsets, permissions, filters, status, generics
+from rest_framework import viewsets, permissions, status
 from rest_framework.pagination import LimitOffsetPagination
 from django.shortcuts import get_object_or_404
 from posts.models import Post, Group, Comment, Follow, User
 from .serializers import (
     PostSerializer, GroupSerializer,
-    CommentSerializer, FollowSerializer,
+    CommentSerializer,
     CustomTokenRefreshSerializer, CustomTokenVerifySerializer
 )
 from rest_framework.decorators import action
@@ -15,37 +15,10 @@ from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 
 class CustomTokenRefreshView(TokenRefreshView):
     serializer_class = CustomTokenRefreshSerializer
-    
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        
-        try:
-            serializer.is_valid(raise_exception=True)
-        except InvalidToken:
-            return Response(
-                {
-                    "detail": "Token is invalid or expired",
-                    "code": "token_not_valid"
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        except Exception as e:
-            return Response(
-                {
-                    "detail": "Token is invalid or expired",
-                    "code": "token_not_valid"
-                },
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-class CustomTokenVerifyView(TokenVerifyView):
-    serializer_class = CustomTokenVerifySerializer
-    
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        
+
         try:
             serializer.is_valid(raise_exception=True)
         except InvalidToken:
@@ -64,8 +37,37 @@ class CustomTokenVerifyView(TokenVerifyView):
                 },
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
+
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+
+
+class CustomTokenVerifyView(TokenVerifyView):
+    serializer_class = CustomTokenVerifySerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except InvalidToken:
+            return Response(
+                {
+                    "detail": "Token is invalid or expired",
+                    "code": "token_not_valid"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception:
+            return Response(
+                {
+                    "detail": "Token is invalid or expired",
+                    "code": "token_not_valid"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         return Response({}, status=status.HTTP_200_OK)
+
 
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
@@ -83,21 +85,23 @@ class PostViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Удаление поста (только автор)"""
         instance = self.get_object()
-        
+
         # Проверка авторизации
         if not request.user.is_authenticated:
             return Response(
                 {"detail": "Учетные данные не были предоставлены."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
+
         # Проверка: автор ли текущий пользователь
         if instance.author != request.user:
             return Response(
-                {"detail": "У вас недостаточно прав для выполнения данного действия."},
+                {"detail": 
+                    "У вас недостаточно прав для выполнения данного действия."
+                    },
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Удаляем пост
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -229,7 +233,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         # Только автор комментария может его удалить
         if comment.author != request.user:
             return Response(
-                {"detail": "У вас недостаточно прав для выполнения данного действия."},
+                {
+                    "detail": 
+                        "У вас недостаточно прав для выполнения данного действия."
+                        },
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -238,10 +245,10 @@ class CommentViewSet(viewsets.ModelViewSet):
 
 class FollowViewSet(viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         return Follow.objects.filter(user=self.request.user)
-    
+
     def list(self, request):
         """GET /api/v1/follow/"""
         follows = self.get_queryset()
@@ -250,39 +257,43 @@ class FollowViewSet(viewsets.GenericViewSet):
             for f in follows
         ]
         return Response(data, status=status.HTTP_200_OK)
-    
+
     def create(self, request):
         """POST /api/v1/follow/"""
         following_username = request.data.get('following')
-        
+
         if not following_username:
             return Response(
                 {"following": ["Обязательное поле."]},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             following_user = User.objects.get(username=following_username)
         except User.DoesNotExist:
             return Response(
-                {"following": [f"Объект с username={following_username} не существует."]},
+                {
+                    "following": [
+                        f"Объект с username={following_username} не существует."
+                        ]},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+    
         if request.user == following_user:
             return Response(
                 {"following": ["Нельзя подписаться на самого себя!"]},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if Follow.objects.filter(user=request.user, following=following_user).exists():
+        if Follow.objects.filter(user=request.user, 
+                                 following=following_user).exists():
             return Response(
                 {"detail": "Вы уже подписаны на этого пользователя."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         Follow.objects.create(user=request.user, following=following_user)
-        
+
         return Response(
             {
                 "user": request.user.username,
@@ -290,7 +301,7 @@ class FollowViewSet(viewsets.GenericViewSet):
             },
             status=status.HTTP_201_CREATED
         )
-    
+
     def destroy(self, request, pk=None):
         """DELETE /api/v1/follow/{id}/"""
         try:

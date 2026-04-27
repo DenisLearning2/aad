@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from posts.models import Post, Group, Comment, Follow, User
+from posts.models import Post, Group, Comment, Follow
 from rest_framework.relations import SlugRelatedField
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer, TokenVerifySerializer
+from rest_framework_simplejwt.serializers import (
+    TokenRefreshSerializer, TokenVerifySerializer)
 from rest_framework.exceptions import AuthenticationFailed
 
 
@@ -11,9 +12,10 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
             return super().validate(attrs)
         except AuthenticationFailed:
             raise serializers.ValidationError(
-                {"detail": "Token is invalid or expired", 
+                {"detail": "Token is invalid or expired",
                  "code": "token_not_valid"}
             )
+
 
 class CustomTokenVerifySerializer(TokenVerifySerializer):
     def validate(self, attrs):
@@ -21,9 +23,10 @@ class CustomTokenVerifySerializer(TokenVerifySerializer):
             return super().validate(attrs)
         except AuthenticationFailed:
             raise serializers.ValidationError(
-                {"detail": "Token is invalid or expired", 
+                {"detail": "Token is invalid or expired",
                  "code": "token_not_valid"}
             )
+
 
 class PostSerializer(serializers.ModelSerializer):
     author = SlugRelatedField(slug_field='username', read_only=True)
@@ -45,11 +48,10 @@ class CommentSerializer(serializers.ModelSerializer):
         # post будет передан из вьюхи через context или напрямую
         request = self.context.get('request')
         post_id = self.context.get('post_id')
-        
         if post_id:
             post = Post.objects.get(id=post_id)
             validated_data['post'] = post
-        
+            validated_data['author'] = request.user
         return super().create(validated_data)
 
 
@@ -61,7 +63,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class FollowSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.username', read_only=True)
-    following = serializers.CharField(source='following.username', read_only=True)
+    following = serializers.CharField(source='following.username',
+                                      read_only=True)
 
     class Meta:
         model = Follow
@@ -70,5 +73,7 @@ class FollowSerializer(serializers.ModelSerializer):
     def validate_following(self, value):
         request = self.context.get('request')
         if request and request.user == value:
-            raise serializers.ValidationError("Нельзя подписаться на самого себя!")
+            raise serializers.ValidationError(
+                "Нельзя подписаться на самого себя!"
+                )
         return value
