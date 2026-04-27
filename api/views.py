@@ -267,7 +267,6 @@ class FollowViewSet(viewsets.GenericViewSet):
 
     def list(self, request):
         """GET /api/v1/follow/"""
-        follows = self.get_queryset()
         queryset = self.get_queryset()
         # Поиск по параметру search
         search_query = request.query_params.get('search', '')
@@ -277,7 +276,7 @@ class FollowViewSet(viewsets.GenericViewSet):
             )
         data = [
             {"user": f.user.username, "following": f.following.username}
-            for f in follows
+            for f in queryset
         ]
         return Response(data, status=status.HTTP_200_OK)
 
