@@ -1,11 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PostViewSet, GroupViewSet, CommentViewSet, FollowViewSet
+from .views import (
+    PostViewSet, GroupViewSet, CommentViewSet, FollowViewSet,
+    CustomTokenRefreshView, CustomTokenVerifyView
+)
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 router = DefaultRouter()
 router.register(r'posts', PostViewSet, basename='post')
 router.register(r'groups', GroupViewSet, basename='group')
-router.register(r'follow', FollowViewSet, basename='follow')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -19,6 +22,14 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy'
     }), name='comment-detail'),
-    path('v1/', include('djoser.urls')),
-    path('v1/', include('djoser.urls.jwt')),
+    path('follow/', FollowViewSet.as_view({
+        'get': 'list',
+        'post': 'create'
+    }), name='follow-list'),
+    path('follow/<int:pk>/', FollowViewSet.as_view({
+        'delete': 'destroy'
+    }), name='follow-detail'),
+    path('jwt/create/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('jwt/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+    path('jwt/verify/', CustomTokenVerifyView.as_view(), name='token_verify'),
 ]
