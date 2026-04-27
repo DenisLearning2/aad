@@ -96,22 +96,22 @@ class PostViewSet(viewsets.ModelViewSet):
         # Проверка: автор ли текущий пользователь
         if instance.author != request.user:
             return Response(
-                {"detail": 
+                {"detail":
                     "У вас недостаточно прав для выполнения данного действия."
-                    },
+                },
                 status=status.HTTP_403_FORBIDDEN
             )
 
         # Удаляем пост
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
+
     def list(self, request, *args, **kwargs):
         limit = request.query_params.get('limit')
         offset = request.query_params.get('offset')
-        
+
         queryset = self.filter_queryset(self.get_queryset())
-        
+
         # Если есть параметры пагинации - возвращаем пагинированный ответ
         if limit is not None or offset is not None:
             paginator = LimitOffsetPagination()
@@ -119,7 +119,7 @@ class PostViewSet(viewsets.ModelViewSet):
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
                 return paginator.get_paginated_response(serializer.data)
-        
+
         # Без параметров - просто массив
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
@@ -130,22 +130,24 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     pagination_class = None
     permission_classes = [permissions.AllowAny]
+
     @action(detail=False, methods=['get'], url_path='list')
     def group_list(self, request):
         serializer = self.get_serializer(self.get_queryset(), many=True)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['get'], url_path='details')
     def group_details(self, request, pk=None):
         group = self.get_object()
         serializer = self.get_serializer(group)
         return Response(serializer.data)
 
+
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     pagination_class = None
-    
+
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
         if post_id:
@@ -160,58 +162,60 @@ class CommentViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         post_id = self.kwargs.get('post_id')
         post = get_object_or_404(Post, id=post_id)
-        
+
         text = request.data.get('text', '').strip()
-        
+
         if not text:
             return Response(
                 {"text": ["Обязательное поле."]},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         comment = Comment.objects.create(
             author=request.user,
             post=post,
             text=text
         )
-        
+
         serializer = self.get_serializer(comment)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         comment = self.get_object()
-        
+
         # Проверка прав: только автор может редактировать
         if comment.author != request.user:
             return Response(
-                {"detail": "У вас недостаточно прав для выполнения данного действия."},
+                {"detail": "У вас недостаточно прав для "
+                 "выполнения данного действия."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         text = request.data.get('text', '').strip()
-        
+
         if not text:
             return Response(
                 {"text": ["Обязательное поле."]},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         comment.text = text
         comment.save()
-        
+
         serializer = self.get_serializer(comment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         comment = self.get_object()
-        
+
         # Проверка прав: только автор может редактировать
         if comment.author != request.user:
             return Response(
-                {"detail": "У вас недостаточно прав для выполнения данного действия."},
+                {"detail": "У вас недостаточно прав для "
+                 "выполнения данного действия."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         if 'text' in request.data:
             text = request.data.get('text', '').strip()
             if not text:
@@ -221,27 +225,29 @@ class CommentViewSet(viewsets.ModelViewSet):
                 )
             comment.text = text
             comment.save()
-        
+
         serializer = self.get_serializer(comment)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         """Удаление комментария - ТОЛЬКО АВТОР"""
         comment = self.get_object()
-        
+
         # Важно: проверка на superuser или staff отключена
         # Только автор комментария может его удалить
         if comment.author != request.user:
             return Response(
                 {
-                    "detail": 
-                        "У вас недостаточно прав для выполнения данного действия."
-                        },
+                    "detail":
+                        "У вас недостаточно прав для выполнения "
+                        "данного действия."
+                },
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         comment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class FollowViewSet(viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -274,18 +280,20 @@ class FollowViewSet(viewsets.GenericViewSet):
             return Response(
                 {
                     "following": [
-                        f"Объект с username={following_username} не существует."
-                        ]},
+                        f"Объект с username={following_username} "
+                        "не существует."
+                    ]
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
         if request.user == following_user:
             return Response(
                 {"following": ["Нельзя подписаться на самого себя!"]},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        if Follow.objects.filter(user=request.user, 
+
+        if Follow.objects.filter(user=request.user,
                                  following=following_user).exists():
             return Response(
                 {"detail": "Вы уже подписаны на этого пользователя."},
