@@ -272,7 +272,9 @@ class FollowViewSet(viewsets.GenericViewSet):
         # Поиск по параметру search
         search_query = request.query_params.get('search', '')
         if search_query:
-            queryset = queryset.filter(following__username__icontains=search_query)
+            queryset = queryset.filter(
+                following__username__icontains=search_query
+            )
         data = [
             {"user": f.user.username, "following": f.following.username}
             for f in follows
